@@ -14,6 +14,7 @@ bash scripts/install.sh                  # full stack install
 
 Your instance should be accessible at http://vm-ip:3000
 
+Go into settings, set up your providers if needed, update the models the agents use to your preference and you should be good to start.
 
 ### Config Variables
 
