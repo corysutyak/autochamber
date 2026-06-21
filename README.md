@@ -178,8 +178,6 @@ bash scripts/update.sh --config path/to/custom.opencode.jsonc
 | `scripts/install-ollama.sh` | Ollama + embedding model for swarm-tools |
 | `scripts/install-openchamber.sh` | OpenChamber web UI |
 | `scripts/health.sh` | Service and port health check |
-| `scripts/update.sh` | Update all components (creates rollback backup) |
-| `scripts/rollback.sh` | Restore from a pre-update backup |
 | `scripts/lib.sh` | Shared helper library (sourced by other scripts) |
 
 ## Rollback
