@@ -1,0 +1,29 @@
+[Unit]
+Description=Ollama Embedding Server
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=$DEV_USER
+WorkingDirectory=$DEV_HOME
+
+Environment=HOME=$DEV_HOME
+Environment=PATH=$DEV_HOME/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+ExecStart=/usr/local/bin/ollama serve
+
+StandardOutput=journal
+StandardError=journal
+
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=60
+TimeoutStopSec=30
+MemoryMax=4G
+TasksMax=512
+
+[Install]
+WantedBy=multi-user.target

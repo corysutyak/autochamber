@@ -1,0 +1,156 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  __PLUGIN_BLOCK__
+  __PROVIDER_BLOCK__
+
+  // === Models ===
+  "model": "__MODEL__",
+  "small_model": "__SMALL_MODEL__",
+  "autoupdate": true,
+
+  // === TUI ===
+  "tui": {
+    "scroll_acceleration": {
+      "enabled": true  // macOS-style momentum scrolling
+    }
+  },
+
+  // === Formatters ===
+  // Runs after file writes - uses project's formatter config
+  "formatter": {
+    "biome": {
+      "command": ["biome", "format", "--write", "$FILE"],
+      "extensions": [".js", ".jsx", ".ts", ".tsx", ".json", ".jsonc"]
+    }
+  },
+
+  // === Instructions ===
+  // AGENTS.md auto-loaded from ~/.config/opencode/ and repo root
+  // Knowledge files (knowledge/*.md) are loaded on-demand via @path references
+
+  // === Permissions ===
+  "permission": {
+    // .env reads without prompts — intentional for agent workflow;
+    // agents need project env vars to run dev servers and tests
+    "read": {
+      ".env": "allow",
+      ".env.*": "allow",
+      ".env-*": "allow"
+    },
+    "external_directory": "allow",
+    // Only deny the truly catastrophic - everything else just runs
+    "bash": {
+      // Block destructive git operations unconditionally
+      "git push --force *": "deny",
+      "git push -f *": "deny",
+      "git push origin main": "deny",
+      "git push origin master": "deny",
+      // Ask before any push — agent must get user approval
+      "git push": "ask",
+      "git push *": "ask",
+      "sudo *": "deny",
+      "rm -rf /": "deny",
+      "rm -rf /*": "deny",
+      "rm -rf ~": "deny",
+      "rm -rf ~/*": "deny",
+      ":(){:|:&};:": "deny"  // fork bomb, just in case
+    }
+  },
+
+  // === MCP Servers ===
+  "mcp": {
+    "next-devtools": {
+      "type": "local",
+      "command": ["next-devtools-mcp"]
+    },
+    "chrome-devtools": {
+      "type": "local",
+      "command": ["chrome-devtools-mcp"]
+    },
+    // Docs lookup for libraries - https://context7.com
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp"
+    },
+    // Web fetching - MCP official server (Python via uvx)
+    "fetch": {
+      "type": "local",
+      "command": ["uvx", "mcp-server-fetch"]
+    }
+  },
+
+  // === Agent Overrides ===
+  "agent": {
+    // Build agent - full capability with slight creativity
+    "build": {
+      "temperature": 0.3
+    },
+    // Plan agent - read-only analysis, no file writes
+    "plan": {
+      "model": "__MODEL__",
+      "temperature": 0.1,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "patch": false
+      },
+      "permission": {
+        "bash": {
+          "git status": "allow",
+          "git diff *": "allow",
+          "git log *": "allow",
+          "git show *": "allow",
+          "bd *": "allow",
+          "rg *": "allow",
+          "tree *": "allow",
+          "wc *": "allow",
+          "head *": "allow",
+          "tail *": "allow",
+          "pnpm exec tsc *": "allow",
+          "pnpm run lint *": "allow",
+          "pnpm test *": "allow",
+          "*": "deny"
+        }
+      }
+    },
+    // Security agent - read-only vulnerability scanning with Snyk
+    "security": {
+      "model": "__MODEL__",
+      "temperature": 0.1,  // Low temp for deterministic security analysis
+      "tools": {
+        "write": false,
+        "edit": false,
+        "patch": false
+      },
+      "description": "Security auditor - scans for vulnerabilities using Snyk tools (SCA, SAST, IaC, container). Read-only, reports findings without modification."
+    },
+    // Test writer agent - generates comprehensive test suites
+    "test-writer": {
+      "model": "__MODEL__",
+      "temperature": 0.2,  // Slight creativity for test case generation
+      "permission": {
+        "write": {
+          "**/*.test.ts": "allow",
+          "**/*.spec.ts": "allow",
+          "**/*.test.tsx": "allow",
+          "**/*.spec.tsx": "allow",
+          "*": "deny"
+        }
+      },
+      "description": "Test specialist - generates comprehensive unit, integration, and e2e tests. Can only write to test files."
+    },
+    // Docs agent - documentation writer (cheaper model)
+    "docs": {
+      "model": "__SMALL_MODEL__",
+      "temperature": 0.3,  // More creativity for readable documentation
+      "permission": {
+        "write": {
+          "**/*.md": "allow",
+          "**/*.mdx": "allow",
+          "*": "deny"
+        }
+      },
+      "description": "Documentation writer - generates and updates markdown docs, READMEs, and guides. Can only write to .md/.mdx files."
+    }
+  }
+}

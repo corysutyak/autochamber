@@ -1,0 +1,32 @@
+[Unit]
+Description=OpenChamber Web UI
+After=network-online.target opencode.service docker.service
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=$DEV_USER
+WorkingDirectory=$DEV_HOME
+
+Environment="OPENCODE_URL=http://127.0.0.1:4096"
+Environment="OPENCHAMBER_ALLOW_UNAUTHENTICATED_LAN=true"
+Environment=PATH=$DEV_HOME/.local/bin:$DEV_HOME/.bun/bin:$DEV_HOME/.opencode/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+ExecStart=/usr/bin/env openchamber --host 0.0.0.0 --port 3000 --foreground
+
+StandardOutput=journal
+StandardError=journal
+
+Restart=on-failure
+RestartSec=10
+TimeoutStartSec=60
+TimeoutStopSec=30
+MemoryMax=2G
+TasksMax=64
+RateLimitIntervalSec=30
+RateLimitBurst=500
+
+[Install]
+WantedBy=multi-user.target
