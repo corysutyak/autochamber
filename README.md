@@ -12,7 +12,8 @@ cp config/default.env config/.env       # copy defaults, then edit
 bash scripts/install.sh                  # full stack install
 ```
 
-That's it. The install script handles everything below.
+Your instance should be accessible at http://vm-ip:3000
+
 
 ### Config Variables
 
