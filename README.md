@@ -153,17 +153,9 @@ To use a local Llama.cpp server, models are auto-discovered at runtime — no ma
 # In config/.env
 OPENCODE_CUSTOM_PROVIDER=true
 OPENCODE_PROVIDER_URL=http://llama.local/v1
-OPENCODE_MODEL=llama-local/auto-discovered-model-id
-OPENCODE_SMALL_MODEL=llama-local/auto-discovered-model-id
 ```
 
 The `opencode-models-discovery` plugin queries your provider's `/v1/models` endpoint on startup and registers all available models automatically. Set `OPENCODE_MODEL` / `OPENCODE_SMALL_MODEL` to whichever discovered model id you want as default.
-
-### Hot-swap configs on update
-
-```bash
-bash scripts/update.sh --config path/to/custom.opencode.jsonc
-```
 
 ## Scripts
 
@@ -179,17 +171,6 @@ bash scripts/update.sh --config path/to/custom.opencode.jsonc
 | `scripts/install-openchamber.sh` | OpenChamber web UI |
 | `scripts/health.sh` | Service and port health check |
 | `scripts/lib.sh` | Shared helper library (sourced by other scripts) |
-
-## Rollback
-
-Every run of `update.sh` creates a timestamped backup in `/var/lib/autochamber/backups/`. To restore:
-
-```bash
-bash scripts/rollback.sh              # interactive selection
-bash scripts/rollback.sh 20260620_143000  # specific backup
-```
-
-Backups include systemd service files, OpenCode config, agent definitions, and a version snapshot of all components.
 
 ## Security Considerations
 
