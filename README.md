@@ -1,6 +1,6 @@
-# Auto OpenChamber VM
+# AutoChamber
 
-Bootstrap scripts for deploying [OpenCode](https://github.com/anomalyco/opencode), [OpenChamber](https://github.com/openchamber/openchamber), and [Swarm Tools](https://github.com/joelhooks/opencode-config).
+Bootstrap scripts for deploying [OpenCode](https://github.com/anomalyco/opencode), [OpenChamber](https://github.com/openchamber/openchamber), and [Swarm Tools](https://github.com/joelhooks/opencode-config).  These is meant to be used on Ubuntu VM's to quickly standup disposable agent-based dev environments.
 
 ## Quick Start
 
