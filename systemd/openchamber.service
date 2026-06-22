@@ -24,7 +24,7 @@ RestartSec=10
 TimeoutStartSec=60
 TimeoutStopSec=30
 MemoryMax=2G
-TasksMax=64
+TasksMax=256
 RateLimitIntervalSec=30
 RateLimitBurst=500
 
