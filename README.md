@@ -89,16 +89,6 @@ Three services are set up for auto-start on boot:
 
 Check status: `systemctl status opencode openchamber ollama`
 View logs: `journalctl -u opencode -f`
-
-## Update
-
-```bash
-bash scripts/update.sh              # update all components
-bash scripts/update.sh --help        # show options
-```
-
-Updates OpenChamber, OpenCode, Bun, CLI backends, Ollama model, pulls latest upstream config, then restarts services. Creates a rollback backup before making changes. Does **not** run `apt upgrade` — use your system's package manager for OS updates.
-
 ## Swarm Tools
 
 [Swarm Tools](https://github.com/joelhooks/opencode-config) turns OpenCode into a multi-agent system. You describe what you want. It decomposes the work, spawns parallel workers, tracks what strategies work, and adapts over time.
