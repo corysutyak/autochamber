@@ -167,33 +167,59 @@ The `opencode-models-discovery` plugin queries your provider's `/v1/models` endp
 
 ## Per-Worktree Docker Isolation
 
-When multiple agents work in parallel worktrees, Docker containers can collide: hardcoded ports and container names cause one worktree to connect to another's containers. OpenChamber's **setup-worktree** feature solves this by generating a worktree-local `.env` with unique ports and compose project names.
+When multiple agents work in parallel worktrees, Docker containers can collide: hardcoded ports, container names, and network names cause one worktree to connect to another's containers. OpenChamber's **setup-worktree** feature solves this by generating a worktree-local `autochamber.env` with unique ports and compose project names.
 
 ### Step 1: Parameterize your docker-compose.yml
 
-Replace hardcoded ports with `PORT_N` environment variables:
+Three things need parameterization:
+
+**A. Ports** — replace hardcoded ports with `PORT_N` variables. Each service gets a sequential index.
+
+**B. Container names** — if you have `container_name` set, parameterize it with `COMPOSE_PROJECT_NAME`. Without this, container names collide and bypass the automatic project prefix.
+
+**C. Network names** — if you define custom networks, prefix them with `COMPOSE_PROJECT_NAME`. Without this, all worktrees share the same Docker network and containers can cross-connect.
 
 ```yaml
 # Before
 services:
   web:
+    container_name: web
     ports:
       - "8080:8080"
+  api:
+    container_name: api
+    ports:
+      - "3000:3000"
   db:
+    container_name: db
     ports:
       - "5432:5432"
+
+networks:
+  appnet:
+    driver: bridge
 
 # After
 services:
   web:
+    container_name: "${COMPOSE_PROJECT_NAME:-default}-web"
     ports:
       - "${PORT_0:-8080}:8080"
+  api:
+    container_name: "${COMPOSE_PROJECT_NAME:-default}-api"
+    ports:
+      - "${PORT_1:-3000}:3000"
   db:
+    container_name: "${COMPOSE_PROJECT_NAME:-default}-db"
     ports:
       - "${PORT_2:-5432}:5432"
+
+networks:
+  ${COMPOSE_PROJECT_NAME:-default}-appnet:
+    driver: bridge
 ```
 
-The `:-default` keeps non-worktree usage working (main branch, CI, etc.). Sequential indices (`PORT_0`, `PORT_1`, `PORT_2`, ...) are assigned per service.
+The `:-default` fallback keeps non-worktree usage working (main branch, CI, etc.).
 
 ### Step 2: Generate the setup command
 
@@ -215,19 +241,21 @@ This prints a single-line bash command and the compose migration guide.
 When a worktree is created, the setup command runs inside the new worktree directory:
 
 1. Reads the branch name via `git branch --show-current`
-2. Scans ports `8000`-`8900` in steps of 100 to find the first unused base
-3. Writes `.env` with `COMPOSE_PROJECT_NAME=wt-<branch>` + `PORT_0` through `PORT_99`
-4. `docker compose up` automatically reads `.env` and uses isolated ports
+2. Scans sibling worktrees for existing `autochamber.env` files and excludes their port bases
+3. Scans ports `8000`-`8900` in steps of 100 to find the first unused base
+4. Writes `autochamber.env` with `COMPOSE_PROJECT_NAME=wt-<branch>` + `PORT_0` through `PORT_99`
 
-Each worktree gets its own compose project name and 100 sequential ports. No collisions.
+Each worktree gets its own compose project name and 100 sequential ports. Collision detection works even when containers aren't running yet, by checking sibling worktree env files.
 
-### Verify
+### Run containers
+
+Always pass `--env-file` to use the generated port assignments:
 
 ```bash
-cat .env                    # Check generated ports
-docker compose up -d        # Start with isolated ports
-docker compose ps           # Verify correct ports
-docker compose down         # Tear down when done
+cat autochamber.env                              # Check generated ports
+docker compose --env-file autochamber.env up -d  # Start with isolated ports
+docker compose --env-file autochamber.env ps     # Verify correct ports
+docker compose --env-file autochamber.env down   # Tear down when done
 ```
 
 ## Security Considerations
