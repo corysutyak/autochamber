@@ -241,7 +241,7 @@ This prints a single-line bash command and the compose migration guide.
 When a worktree is created, the setup command runs inside the new worktree directory:
 
 1. Reads the branch name via `git branch --show-current`
-2. Scans sibling worktrees for existing `autochamber.env` files and excludes their port bases
+2. Scans sibling worktree directories for existing `autochamber.env` files and excludes their port bases
 3. Scans ports `8000`-`8900` in steps of 100 to find the first unused base
 4. Writes `autochamber.env` with `COMPOSE_PROJECT_NAME=wt-<branch>` + `PORT_0` through `PORT_99`
 
