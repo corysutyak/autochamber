@@ -163,6 +163,72 @@ The `opencode-models-discovery` plugin queries your provider's `/v1/models` endp
 | `scripts/install-openchamber.sh` | OpenChamber web UI |
 | `scripts/health.sh` | Service and port health check |
 | `scripts/lib.sh` | Shared helper library (sourced by other scripts) |
+| `scripts/setup-worktree-docker.sh` | Generate per-worktree Docker isolation setup command |
+
+## Per-Worktree Docker Isolation
+
+When multiple agents work in parallel worktrees, Docker containers can collide: hardcoded ports and container names cause one worktree to connect to another's containers. OpenChamber's **setup-worktree** feature solves this by generating a worktree-local `.env` with unique ports and compose project names.
+
+### Step 1: Parameterize your docker-compose.yml
+
+Replace hardcoded ports with `PORT_N` environment variables:
+
+```yaml
+# Before
+services:
+  web:
+    ports:
+      - "8080:8080"
+  db:
+    ports:
+      - "5432:5432"
+
+# After
+services:
+  web:
+    ports:
+      - "${PORT_0:-8080}:8080"
+  db:
+    ports:
+      - "${PORT_2:-5432}:5432"
+```
+
+The `:-default` keeps non-worktree usage working (main branch, CI, etc.). Sequential indices (`PORT_0`, `PORT_1`, `PORT_2`, ...) are assigned per service.
+
+### Step 2: Generate the setup command
+
+```bash
+bash scripts/setup-worktree-docker.sh [project_path]
+```
+
+This prints a single-line bash command and the compose migration guide.
+
+### Step 3: Configure in OpenChamber
+
+1. Open OpenChamber at `http://<vm-ip>:3000`
+2. Go to **Settings > Worktrees > Setup commands**
+3. Paste the generated command
+4. Enable **"Wait for setup commands"** toggle
+
+### How it works
+
+When a worktree is created, the setup command runs inside the new worktree directory:
+
+1. Reads the branch name via `git branch --show-current`
+2. Scans ports `8000`-`8900` in steps of 100 to find the first unused base
+3. Writes `.env` with `COMPOSE_PROJECT_NAME=wt-<branch>` + `PORT_0` through `PORT_99`
+4. `docker compose up` automatically reads `.env` and uses isolated ports
+
+Each worktree gets its own compose project name and 100 sequential ports. No collisions.
+
+### Verify
+
+```bash
+cat .env                    # Check generated ports
+docker compose up -d        # Start with isolated ports
+docker compose ps           # Verify correct ports
+docker compose down         # Tear down when done
+```
 
 ## Security Considerations
 
