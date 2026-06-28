@@ -56,19 +56,13 @@ else
   step_info "Added fstab entry: $FSTAB_ENTRY"
 fi
 
-# Mount
-sudo mount -a 2>/dev/null || true
-
-# Verify mount
-if findmnt -S "$MOUNT_POINT" -o TARGET -n 2>/dev/null | grep -qF "$MOUNT_POINT"; then
-  step_ok "Mounted $MOUNT_TAG at $MOUNT_POINT"
-else
-  step_warn "Mount may not be active — Virtiofs device might not be attached to this VM"
-  step_warn "Verify with: ls -la $MOUNT_POINT"
-  exit 0
+# Mount — capture errors for diagnostics
+MOUNT_OUTPUT=$(sudo mount -a 2>&1) || true
+if [ -n "$MOUNT_OUTPUT" ]; then
+  step_info "mount -a output: $MOUNT_OUTPUT"
 fi
 
-# Create symlink in user's home directory
+# Create symlink in user's home directory (always, even if mount isn't active yet)
 CURRENT_USER="${SUDO_USER:-$USER}"
 CURRENT_HOME="$(eval echo "~$CURRENT_USER")"
 SYMLINK="$CURRENT_HOME/$MOUNT_TAG"
@@ -88,6 +82,21 @@ elif [ -e "$SYMLINK" ]; then
 else
   ln -s "$MOUNT_POINT" "$SYMLINK"
   step_info "Created symlink $SYMLINK -> $MOUNT_POINT"
+fi
+
+# Verify mount
+if findmnt -t virtiofs -n -o TARGET "$MOUNT_POINT" 2>/dev/null | grep -qF "$MOUNT_POINT"; then
+  step_ok "Mounted $MOUNT_TAG at $MOUNT_POINT"
+else
+  step_warn "Mount not active at $MOUNT_POINT"
+  # Check if the virtiofs source device exists in the kernel
+  if ls /sys/fs/virtiofs/ 2>/dev/null | grep -qF "$MOUNT_TAG"; then
+    step_warn "Device '$MOUNT_TAG' exists in /sys/fs/virtiofs/ but mount failed"
+    step_warn "Try manual mount: sudo mount -t virtiofs $MOUNT_TAG $MOUNT_POINT"
+  else
+    step_warn "Virtiofs device '$MOUNT_TAG' not found — check VM device configuration"
+    step_warn "Active mounts: $(mount | grep virtiofs 2>/dev/null || echo 'none')"
+  fi
 fi
 
 step_ok "Virtiofs mount ready: $SYMLINK -> $MOUNT_POINT"
