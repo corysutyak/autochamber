@@ -288,5 +288,10 @@ step_start "Health check"
 bash "$ROOT/scripts/health.sh"
 step_ok "all checks passed"
 
+# ── VM Virtiofs Mount (optional) ──────────────────────────────────────────────
+step_start "Virtiofs mount"
+bash "$ROOT/scripts/setup-vm-mount.sh" "$ENV_FILE" || step_warn "VM mount failed or not configured"
+step_ok "VM mount ready"
+
 echo
 banner "Install Complete"

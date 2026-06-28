@@ -32,6 +32,8 @@ The `config/.env` file controls which models OpenCode uses and how swarm-tools c
 | `AGENT_NAME` | `OpenChamber Agent` | Git user.name for agent commits |
 | `AGENT_EMAIL` | `agent@localvm` | Git user.email for agent commits |
 | `GH_TOKEN` | *(empty)* | GitHub fine-grained PAT for auto-auth during install — needs at least **Read/Write Contents** and **Read/Write Pull Requests** permissions |
+| `VM_MOUNT_TAG` | *(empty)* | Virtiofs mount tag from host VM device — leave empty to skip |
+| `VM_MOUNT_POINT` | *(empty)* | Mount path inside the VM (e.g., `/mnt/unraid-share`) — leave empty to skip |
 
 See the [Config](#config) section below for custom provider examples and hot-swap options.
 
@@ -164,6 +166,7 @@ The `opencode-models-discovery` plugin queries your provider's `/v1/models` endp
 | `scripts/health.sh` | Service and port health check |
 | `scripts/lib.sh` | Shared helper library (sourced by other scripts) |
 | `scripts/setup-worktree-docker.sh` | Generate per-worktree Docker isolation setup command |
+| `scripts/setup-vm-mount.sh` | Mount Virtiofs share from host VM into guest |
 
 ## Per-Worktree Docker Isolation
 
@@ -256,6 +259,47 @@ cat autochamber.env                              # Check generated ports
 docker compose --env-file autochamber.env up -d  # Start with isolated ports
 docker compose --env-file autochamber.env ps     # Verify correct ports
 docker compose --env-file autochamber.env down   # Tear down when done
+```
+
+## VM Virtiofs Mount
+
+Mount a directory from the host into the VM via Virtiofs. Primarily for Unraid VMs using Virtiofs share devices, but works with any Virtiofs setup.
+
+### Unraid Setup
+
+In Unraid's VM editor, add a **Virtiofs** device with these settings:
+
+| Setting | Value |
+|---------|-------|
+| **Unraid Share Mode** | `Squash` or `Passthrough` |
+| **Unraid Share** | The share name on your Unraid server |
+| **Unraid Source Path** | Path within the share to expose |
+| **Unraid Mount Tag** | Tag name (e.g., `unraid-share`) — must match `VM_MOUNT_TAG` |
+
+### Configuration
+
+Set these in `config/.env`:
+
+```bash
+VM_MOUNT_TAG=unraid-share
+VM_MOUNT_POINT=/mnt/unraid-share
+```
+
+On install, the script will:
+
+1. Create the mount point: `sudo mkdir -p /mnt/unraid-share`
+2. Add an fstab entry: `unraid-share  /mnt/unraid-share  virtiofs  defaults  0  0`
+3. Run `sudo mount -a`
+4. Create a symlink in your home directory: `~/unraid-share -> /mnt/unraid-share`
+
+All steps are idempotent — safe to re-run. Leave both variables empty to skip.
+
+### Manual Setup
+
+If you add a Virtiofs device after initial install, run:
+
+```bash
+bash scripts/setup-vm-mount.sh
 ```
 
 ## Security Considerations
